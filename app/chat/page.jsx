@@ -11,7 +11,7 @@ export default function ChatPage() {
     {
       id: 0,
       role: "assistant",
-      content: "Hello! I’m ChatMind AI. How can I help you today?",
+      content: "Hello! I’m GME. How can I help you today?",
     },
   ]);
   const [input, setInput] = useState("");
@@ -71,7 +71,7 @@ export default function ChatPage() {
       {
         id: 0,
         role: "assistant",
-        content: "Hello! I’m ChatMind AI. How can I help you today?",
+        content: "Hello! I’m GME. How can I help you today?",
       },
     ]);
     setConversationId(null);
@@ -137,7 +137,7 @@ export default function ChatPage() {
       <aside className="hidden md:flex h-full w-64 flex-col border-r border-gray-700 bg-[#202123]">
         <header className="flex items-center gap-3 border-b border-gray-700 px-5 py-4">
           <Bot size={24} className="text-emerald-400" />
-          <span className="text-xl font-bold">ChatMind AI</span>
+          <span className="text-xl font-bold">GME</span>
         </header>
 
         <button
@@ -165,7 +165,7 @@ export default function ChatPage() {
           >
             <Menu size={20} className="text-gray-300" />
           </button>
-          <span className="font-semibold">ChatMind AI</span>
+          <span className="font-semibold">GME</span>
         </div>
 
         {/* messages */}
@@ -220,7 +220,7 @@ export default function ChatPage() {
                     handleSend();
                   }
                 }}
-                placeholder="Message ChatMind AI…"
+                placeholder="Message GME…"
                 className="scrollbar-thumb-gray-700 scrollbar-track-gray-800 max-h-40 w-full resize-none overflow-y-auto rounded-xl bg-[#343541] p-3 pr-10 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 style={{ minHeight: 50 }}
               />
@@ -235,8 +235,7 @@ export default function ChatPage() {
             </div>
           </form>
           <p className="mx-auto mt-3 max-w-3xl text-center text-[11px] text-gray-400">
-            ChatMind AI may produce inaccurate information. Verify facts that
-            matter.
+            GME may produce inaccurate information. Verify facts that matter.
           </p>
         </footer>
       </section>

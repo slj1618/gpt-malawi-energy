@@ -16,7 +16,7 @@ export default function HomePage() {
       <header className="backdrop-blur bg-white/70 border-b border-zinc-200">
         <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
           <a href="/" className="flex items-center gap-2 font-bold text-lg">
-            <Bot size={24} /> ChatMind AI
+            <Bot size={24} /> GME
           </a>
 
           <div className="flex items-center gap-6 text-sm">
@@ -42,9 +42,9 @@ export default function HomePage() {
           Instant answers&nbsp;— in your pocket, on demand.
         </h1>
         <p className="mb-8 max-w-xl text-lg text-zinc-600">
-          ChatMind AI is your personal knowledge companion, powered by
-          state-of-the-art language models. Ask anything, learn faster, and
-          create without limits.
+          GME is your personal knowledge companion, powered by state-of-the-art
+          language models. Ask anything, learn faster, and create without
+          limits.
         </p>
         <a
           href="/chat"
@@ -91,7 +91,7 @@ export default function HomePage() {
 
       {/* ─── Footer ──────────────────────────────────────────── */}
       <footer className="border-t border-zinc-200 bg-zinc-100 py-6 text-center text-sm text-zinc-500">
-        © {new Date().getFullYear()} ChatMind AI. All rights reserved.
+        © {new Date().getFullYear()} GME. All rights reserved.
       </footer>
     </main>
   );
