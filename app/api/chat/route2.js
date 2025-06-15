@@ -1,12 +1,8 @@
 import { NextResponse } from "next/server";
 import { ChatOpenAI } from "@langchain/openai";
-import {
-  ChatPromptTemplate,
-  MessagesPlaceholder,
-} from "@langchain/core/prompts";
+import { ChatPromptTemplate } from "@langchain/core/prompts";
 import { StringOutputParser } from "@langchain/core/output_parsers";
 import { RunnableSequence } from "@langchain/core/runnables";
-import { HumanMessage, AIMessage } from "@langchain/core/messages";
 import { serverSupabase } from "../../lib/supabase.mjs";
 
 // Initialize your LLM
