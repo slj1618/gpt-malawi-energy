@@ -9,6 +9,8 @@ import { fileURLToPath } from "node:url";
 import { config } from "dotenv";
 config({ path: ".env.local" });
 
+// good
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const filePath = path.join(
   __dirname,
