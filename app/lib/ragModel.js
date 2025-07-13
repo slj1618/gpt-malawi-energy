@@ -125,25 +125,24 @@ const retrieveDocs = new RunnableLambda({
       .filter((s) => s.status === "fulfilled")
       .map((s) => s.value);
     if (results.length === 0) throw new Error("All retrieval calls failed");
-    return results;
-    // for (const docs of results) {
-    //   // iterate over each document and track its rank (index)
-    //   docs.forEach((doc, rank) => {
-    //     // doc  → the current document
-    //     // rank → its position in the docs array (0-based)
-    //     const docStr = JSON.stringify(doc.pageContent);
-    //     if (!(docStr in fusedScores)) {
-    //       fusedScores[docStr] = 0;
-    //     }
-    //     const previousScore = fusedScores[docStr];
-    //     fusedScores[docStr] = previousScore + 1 / (rank + k);
-    //   });
-    // }
-    // const rerankedResults = Object.entries(fusedScores) // → [ [docStr, score], ... ]
-    //   .sort(([, scoreA], [, scoreB]) => scoreB - scoreA) // sort descending by score
-    //   .map(([docStr, score]) => [JSON.parse(docStr), score]);
+    for (const docs of results) {
+      // iterate over each document and track its rank (index)
+      docs.forEach((doc, rank) => {
+        // doc  → the current document
+        // rank → its position in the docs array (0-based)
+        const docStr = JSON.stringify(doc.pageContent);
+        if (!(docStr in fusedScores)) {
+          fusedScores[docStr] = 0;
+        }
+        const previousScore = fusedScores[docStr];
+        fusedScores[docStr] = previousScore + 1 / (rank + k);
+      });
+    }
+    const rerankedResults = Object.entries(fusedScores) // → [ [docStr, score], ... ]
+      .sort(([, scoreA], [, scoreB]) => scoreB - scoreA) // sort descending by score
+      .map(([docStr, score]) => [JSON.parse(docStr), score]);
 
-    // return rerankedResults;
+    return rerankedResults;
   },
 });
 
