@@ -1,0 +1,303 @@
+{
+  "schema_name": "Malawi_Energy_Sector_Knowledge_Graph_Schema",
+  "entities": [
+    {
+      "name": "Organization",
+      "attributes": [
+        { "name": "Name", "type": "string" },
+        {
+          "name": "Type",
+          "type": "string",
+          "enum": [
+            "Utility",
+            "Government Ministry",
+            "International Body",
+            "Consulting Firm",
+            "Private Sector"
+          ]
+        },
+        { "name": "Country", "type": "string" },
+        { "name": "Mandate_Role", "type": "string" }
+      ]
+    },
+    {
+      "name": "Project_Initiative",
+      "attributes": [
+        { "name": "Name", "type": "string" },
+        {
+          "name": "Status",
+          "type": "string",
+          "enum": ["Proposed", "Committed", "Ongoing", "Completed"]
+        },
+        { "name": "Start_Date", "type": "date" },
+        { "name": "End_Date", "type": "date" },
+        { "name": "Objective", "type": "string" },
+        { "name": "Scope", "type": "string" }
+      ]
+    },
+    {
+      "name": "Energy_Source",
+      "attributes": [
+        {
+          "name": "Type",
+          "type": "string",
+          "enum": [
+            "Electricity",
+            "Biomass",
+            "Biogas",
+            "Hydro",
+            "Solar",
+            "Wind",
+            "Coal",
+            "LPG",
+            "E-cooking"
+          ]
+        },
+        { "name": "Sub_Type", "type": "string" },
+        { "name": "Description", "type": "string" },
+        { "name": "Potential", "type": "string" }
+      ]
+    },
+    {
+      "name": "Location",
+      "attributes": [
+        { "name": "Name", "type": "string" },
+        {
+          "name": "Type",
+          "type": "string",
+          "enum": ["Country", "City", "District", "River", "Hydropower Plant"]
+        },
+        { "name": "Region", "type": "string" },
+        { "name": "Coordinates", "type": "string" }
+      ]
+    },
+    {
+      "name": "Financial_Data",
+      "attributes": [
+        {
+          "name": "Type",
+          "type": "string",
+          "enum": [
+            "Revenue",
+            "Expenditure",
+            "Asset",
+            "Liability",
+            "Loan",
+            "Grant",
+            "Equity"
+          ]
+        },
+        { "name": "Value", "type": "number" },
+        { "name": "Currency", "type": "string", "enum": ["MWK", "USD", "SDR"] },
+        { "name": "Fiscal_Year", "type": "year" },
+        { "name": "Date", "type": "date" },
+        { "name": "Source_Document", "type": "string" }
+      ]
+    },
+    {
+      "name": "Policy_Strategy",
+      "attributes": [
+        { "name": "Name", "type": "string" },
+        { "name": "Date_Issued", "type": "date" },
+        { "name": "Description", "type": "string" },
+        { "name": "Objectives", "type": "string" }
+      ]
+    },
+    {
+      "name": "Challenge_Risk",
+      "attributes": [
+        { "name": "Description", "type": "string" },
+        {
+          "name": "Severity",
+          "type": "string",
+          "enum": ["High", "Moderate", "Low"]
+        },
+        { "name": "Impact", "type": "string" },
+        { "name": "Mitigation_Strategy", "type": "string" }
+      ]
+    },
+    {
+      "name": "Report_Document",
+      "attributes": [
+        { "name": "Title", "type": "string" },
+        { "name": "Publication_Date", "type": "date" },
+        { "name": "Authoring_Organization", "type": "string" },
+        {
+          "name": "Type",
+          "type": "string",
+          "enum": [
+            "Financial Statement",
+            "Project Appraisal Document",
+            "Diagnostic Report",
+            "Integrated Resource Plan"
+          ]
+        },
+        { "name": "URL", "type": "string" }
+      ]
+    },
+    {
+      "name": "Energy_Access_Metric",
+      "attributes": [
+        {
+          "name": "Metric_Name",
+          "type": "string",
+          "enum": [
+            "Electricity Access Rate",
+            "Clean Cooking Access Rate",
+            "MTF Tier Score"
+          ]
+        },
+        { "name": "Value", "type": "number" },
+        { "name": "Year", "type": "year" },
+        { "name": "Location", "type": "string" }
+      ]
+    },
+    {
+      "name": "Infrastructure",
+      "attributes": [
+        {
+          "name": "Type",
+          "type": "string",
+          "enum": [
+            "Generation Plant",
+            "Transmission Line",
+            "Distribution Network"
+          ]
+        },
+        { "name": "Name", "type": "string" },
+        { "name": "Capacity", "type": "string" },
+        { "name": "Location", "type": "string" }
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "name": "FUNDS",
+      "from_entity": "Organization",
+      "to_entity": "Project_Initiative",
+      "attributes": [
+        { "name": "Amount", "type": "number" },
+        { "name": "Currency", "type": "string" },
+        { "name": "Year", "type": "year" }
+      ]
+    },
+    {
+      "name": "IMPLEMENTS",
+      "from_entity": "Organization",
+      "to_entity": "Project_Initiative"
+    },
+    {
+      "name": "PARTNERS_WITH",
+      "from_entity": "Organization",
+      "to_entity": "Organization"
+    },
+    {
+      "name": "GOVERNS",
+      "from_entity": "Organization",
+      "to_entity": "Sector",
+      "attributes": [{ "name": "Sector", "type": "string" }]
+    },
+    {
+      "name": "REPORTS_ON",
+      "from_entity": "Organization",
+      "to_entity": "Report_Document"
+    },
+    {
+      "name": "OWNS",
+      "from_entity": "Organization",
+      "to_entity": "Infrastructure"
+    },
+    {
+      "name": "RELATES_TO",
+      "from_entity": "Project_Initiative",
+      "to_entity": "Policy_Strategy",
+      "attributes": [{ "name": "Aspect", "type": "string" }]
+    },
+    {
+      "name": "IMPACTS",
+      "from_entity": "Project_Initiative",
+      "to_entity": "Location",
+      "attributes": [
+        { "name": "Type_of_Impact", "type": "string" },
+        { "name": "Magnitude", "type": "string" }
+      ]
+    },
+    {
+      "name": "UTILIZES",
+      "from_entity": "Project_Initiative",
+      "to_entity": "Energy_Source"
+    },
+    {
+      "name": "ADDRESSES",
+      "from_entity": "Project_Initiative",
+      "to_entity": "Challenge_Risk"
+    },
+    {
+      "name": "HAS_FINANCIAL_DATA",
+      "from_entity": "Project_Initiative",
+      "to_entity": "Financial_Data"
+    },
+    {
+      "name": "IS_USED_IN",
+      "from_entity": "Energy_Source",
+      "to_entity": "Location"
+    },
+    {
+      "name": "FUELS",
+      "from_entity": "Energy_Source",
+      "to_entity": "Technology",
+      "attributes": [{ "name": "Technology", "type": "string" }]
+    },
+    {
+      "name": "GENERATES",
+      "from_entity": "Infrastructure",
+      "to_entity": "Energy_Source"
+    },
+    {
+      "name": "HAS_ENERGY_ACCESS_METRIC",
+      "from_entity": "Location",
+      "to_entity": "Energy_Access_Metric"
+    },
+    {
+      "name": "PERTAINS_TO",
+      "from_entity": "Financial_Data",
+      "to_entity": "Organization"
+    },
+    {
+      "name": "ASSOCIATED_WITH",
+      "from_entity": "Financial_Data",
+      "to_entity": "Project_Initiative"
+    },
+    {
+      "name": "FOR_YEAR",
+      "from_entity": "Financial_Data",
+      "to_entity": "Date"
+    },
+    {
+      "name": "DESCRIBES",
+      "from_entity": "Report_Document",
+      "to_entity": "Project_Initiative"
+    },
+    {
+      "name": "CONTAINS_DATA_ON",
+      "from_entity": "Report_Document",
+      "to_entity": "Energy_Access_Metric"
+    },
+    {
+      "name": "IDENTIFIES",
+      "from_entity": "Report_Document",
+      "to_entity": "Challenge_Risk"
+    },
+    {
+      "name": "IMPACTS",
+      "from_entity": "Challenge_Risk",
+      "to_entity": "Sector",
+      "attributes": [{ "name": "Sector", "type": "string" }]
+    },
+    {
+      "name": "LOCATED_IN",
+      "from_entity": "Location",
+      "to_entity": "Location"
+    }
+  ]
+}

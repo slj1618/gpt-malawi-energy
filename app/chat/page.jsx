@@ -1,77 +1,92 @@
+// ChatPageDark.jsx – dark-themed chat interface with backend RAG + memory
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Plus, Bot, Send, User, Menu, LoaderCircle } from "lucide-react";
-import { answerChain } from "../lib/ragModel";
+import Markdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
-/* ───── Component ───────────────────────────────────────── */
-export default function ChatPage() {
-  /* ── state ─────────────────────────────── */
+/*
+  This component:
+  • Sends user prompts to /api/chat (which hosts the RAG + memory chain)
+  • Keeps conversationId so the backend can thread history
+  • Stays fully on the client for live UX, but no OpenAI keys leak
+*/
+export default function ChatPageDark() {
+  // ─── state ──────────────────────────────────────────────────────────
   const [messages, setMessages] = useState([
     {
       id: 0,
       role: "assistant",
-      content: "Hello! I’m GME. How can I help you today?",
+      content: "Hello! I\u2019m GME AI. How can I help you today?",
     },
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [conversationId, setConversationId] = useState(null);
-
-  /* ── refs ──────────────────────────────── */
+  const [seconds, setSeconds] = useState(0);
+  // ─── refs ───────────────────────────────────────────────────────────
   const endRef = useRef(null);
   const textareaRef = useRef(null);
+  const tick = useRef(null);
 
-  /* ── send message ──────────────────────── */
-  const handleSend = useCallback(async () => {
-    if (!input.trim()) return;
+  // ─── send message to backend ────────────────────────────────────────
+  const sendMessage = useCallback(async () => {
+    if (!input.trim() || loading) return;
 
-    const userMsg = {
-      id: Date.now(),
-      role: "user",
-      content: input.trim(),
-    };
-    setMessages((m) => [...m, userMsg]);
+    const userContent = input.trim();
     setInput("");
-    setLoading(true);
     textareaRef.current?.style.setProperty("height", "auto");
 
+    const userMsg = { id: Date.now(), role: "user", content: userContent };
+    setMessages((prev) => [...prev, userMsg]);
+    setLoading(true);
+    setSeconds(0);
+
+    const t0 = Date.now();
+    tick.current = setInterval(() => setSeconds(Date.now() - t0), 1000);
+
     try {
-      const res = await answerChain.invoke({ question: userMsg.content });
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: userContent, conversationId }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
-      const { reply, conversationId: newId } = {
-        reply: res,
-        conversationId: crypto.randomUUID(),
-      };
+      const { reply, conversationId: cid } = await res.json();
+      if (cid && cid !== conversationId) setConversationId(cid);
 
-      setMessages((m) => [
-        ...m,
+      setMessages((prev) => [
+        ...prev,
         { id: Date.now() + 1, role: "assistant", content: reply },
       ]);
-      if (newId && newId !== conversationId) setConversationId(newId);
-    } catch (e) {
-      console.error(e);
-      setMessages((m) => [
-        ...m,
+      const t1 = Date.now();
+      setSeconds((t1 - t0) / 1000);
+    } catch (err) {
+      console.error(err);
+      setMessages((prev) => [
+        ...prev,
         {
           id: Date.now() + 1,
           role: "assistant",
           content:
-            "⚠️ Sorry, something went wrong fetching the answer. Please try again.",
+            "⚠️ Sorry, I had trouble fetching the answer. Please try again.",
         },
       ]);
     } finally {
       setLoading(false);
+      clearInterval(tick.current);
     }
-  }, [input, conversationId]);
+  }, [input, conversationId, loading]);
 
-  /* ── start new chat ─────────────────────── */
+  // ─── new chat ───────────────────────────────────────────────────────
   const startNewChat = () => {
     setMessages([
       {
         id: 0,
         role: "assistant",
-        content: "Hello! I’m GME. How can I help you today?",
+        content: "Hello! I\u2019m GME AI. How can I help you today?",
       },
     ]);
     setConversationId(null);
@@ -79,7 +94,7 @@ export default function ChatPage() {
     setLoading(false);
   };
 
-  /* ── side effects ───────────────────────── */
+  // ─── effects ────────────────────────────────────────────────────────
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
@@ -92,10 +107,10 @@ export default function ChatPage() {
     }
   }, [input]);
 
-  /* ── message block ─────────────────────── */
-  const MessageBlock = ({ role, content, id }) => {
+  // ─── message bubble ─────────────────────────────────────────────────
+  const Message = ({ role, content, id }) => {
     const isUser = role === "user";
-    const bubble = isUser ? "bg-[#2a2b2d]" : "bg-[#3c3e4a]";
+    const bubbleCls = isUser ? "bg-[#2a2b2d]" : "bg-[#3c3e4a]";
     const Icon = isUser ? User : Bot;
     const iconColor = isUser ? "text-gray-400" : "text-emerald-400";
 
@@ -109,19 +124,20 @@ export default function ChatPage() {
           {isUser ? (
             <>
               <div
-                className={`prose prose-invert prose-sm whitespace-pre-wrap rounded-lg p-3 shadow-sm max-w-[calc(100%-50px)] ${bubble}`}
+                className={`prose prose-invert prose-sm whitespace-pre-wrap rounded-lg p-3 shadow-sm max-w-[calc(100%-50px)] ${bubbleCls}`}
               >
-                {content}
+                <Markdown remarkPlugins={[remarkGfm]}>{content}</Markdown>
               </div>
-              <Icon size={22} className={iconColor + " shrink-0 pt-1"} />
+              <Icon size={22} className={`${iconColor} shrink-0 pt-1`} />
             </>
           ) : (
             <>
-              <Icon size={22} className={iconColor + " shrink-0 pt-1"} />
+              <Icon size={22} className={`${iconColor} shrink-0 pt-1`} />
               <div
-                className={`prose prose-invert prose-sm whitespace-pre-wrap rounded-lg p-3 shadow-md max-w-[calc(100%-50px)] ${bubble}`}
+                className={`prose prose-invert prose-sm whitespace-pre-wrap rounded-lg p-3 shadow-md max-w-[calc(100%-50px)] ${bubbleCls}`}
               >
                 {content}
+                {/* <Markdown remarkPlugins={[remarkGfm]}>{content}</Markdown> */}
               </div>
             </>
           )}
@@ -130,14 +146,14 @@ export default function ChatPage() {
     );
   };
 
-  /* ── render ─────────────────────────────── */
+  // ─── UI ──────────────────────────────────────────────────────────────
   return (
     <div className="flex h-screen w-full overflow-hidden bg-[#202123] text-gray-100 font-inter">
-      {/* sidebar */}
+      {/* ── sidebar ── */}
       <aside className="hidden md:flex h-full w-64 flex-col border-r border-gray-700 bg-[#202123]">
         <header className="flex items-center gap-3 border-b border-gray-700 px-5 py-4">
           <Bot size={24} className="text-emerald-400" />
-          <span className="text-xl font-bold">GME</span>
+          <span className="text-xl font-bold">GME 1.5</span>
         </header>
 
         <button
@@ -148,6 +164,7 @@ export default function ChatPage() {
           <Plus size={18} /> New Chat
         </button>
 
+        {/* 🔜 list of previous conversations (future feature) */}
         <nav className="flex-1 overflow-y-auto px-4 text-xs text-gray-400">
           <div className="rounded-xl bg-[#2a2b2d] px-3 py-2 text-center">
             No previous conversations. Start a new one!
@@ -155,9 +172,9 @@ export default function ChatPage() {
         </nav>
       </aside>
 
-      {/* main chat */}
+      {/* ── main chat ── */}
       <section className="flex flex-1 flex-col">
-        {/* mobile top-bar */}
+        {/* mobile header */}
         <div className="md:hidden flex items-center gap-2 border-b border-gray-700 bg-[#202123] px-4 py-3">
           <button
             className="rounded-md p-2 hover:bg-[#2a2b2d]"
@@ -170,18 +187,20 @@ export default function ChatPage() {
 
         {/* messages */}
         <div className="flex-1 overflow-y-auto space-y-2 pt-4 pb-28">
-          {messages.map((m) => (
-            <MessageBlock key={m.id} {...m} />
+          {messages.map((m, index) => (
+            <div key={index}>
+              <Message key={m.id} {...m} />
+            </div>
           ))}
 
           {loading && (
-            <MessageBlock
+            <Message
               id="loading"
               role="assistant"
               content={
                 <span className="inline-flex items-center text-gray-300">
-                  <LoaderCircle size={18} className="mr-2 animate-spin" />
-                  Typing…
+                  <LoaderCircle className="mr-2 animate-spin" size={18} />{" "}
+                  Thinking… {Math.floor(seconds / 1000)}s
                 </span>
               }
             />
@@ -192,19 +211,18 @@ export default function ChatPage() {
           {messages.length === 1 && !loading && (
             <div className="flex h-full items-center justify-center px-4 text-center text-gray-500">
               <p className="max-w-xl text-lg">
-                Type your message below to start a conversation with ChatMind
-                AI!
+                Type your message below to start a conversation with GME AI!
               </p>
             </div>
           )}
         </div>
 
-        {/* input */}
+        {/* composer */}
         <footer className="fixed bottom-0 left-0 right-0 border-t border-gray-700 bg-[#202123] p-4">
           <form
             onSubmit={(e) => {
               e.preventDefault();
-              handleSend();
+              sendMessage();
             }}
             className="mx-auto flex w-full max-w-3xl gap-2"
           >
@@ -217,12 +235,13 @@ export default function ChatPage() {
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
-                    handleSend();
+                    sendMessage();
                   }
                 }}
                 placeholder="Message GME…"
-                className="scrollbar-thumb-gray-700 scrollbar-track-gray-800 max-h-40 w-full resize-none overflow-y-auto rounded-xl bg-[#343541] p-3 pr-10 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="scrollbar-thumb-gray-700 scrollbar-track-gray-800 max-h-40 w-full resize-none overflow-y-auto rounded-xl bg-[#343541] p-3 pr-10 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:cursor-not-allowed"
                 style={{ minHeight: 50 }}
+                disabled={loading}
               />
               <button
                 type="submit"
@@ -235,7 +254,7 @@ export default function ChatPage() {
             </div>
           </form>
           <p className="mx-auto mt-3 max-w-3xl text-center text-[11px] text-gray-400">
-            GME may produce inaccurate information. Verify facts that matter.
+            GME AI may produce inaccurate information. Verify facts that matter.
           </p>
         </footer>
       </section>

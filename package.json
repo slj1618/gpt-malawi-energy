@@ -10,15 +10,21 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@langchain/community": "^0.3.46",
+    "@langchain/community": "^0.3.48",
     "@langchain/core": "^0.3.58",
-    "@langchain/openai": "^0.5.13",
+    "@langchain/google-genai": "^0.2.14",
+    "@langchain/openai": "^0.5.18",
     "@supabase/supabase-js": "^2.50.0",
+    "langchain": "^0.3.29",
+    "langsmith": "^0.3.40",
     "lucide-react": "^0.514.0",
+    "neo4j-driver": "^5.28.1",
     "next": "15.3.3",
     "pdf-parse": "^1.1.1",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

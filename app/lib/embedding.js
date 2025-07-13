@@ -28,9 +28,9 @@ try {
 
   const output = await splitter.createDocuments([text]);
 
-  const openAIApiKey = process.env.NEXT_PUBLIC_OPENAI_API_KEY;
+  const openAIApiKey = process.env.OPENAI_API_KEY;
 
-  const sbApiKey = process.env.NEXT_PUBLIC_SUPABASE_API_KEY;
+  const sbApiKey = process.env.SUPABASE_API_KEY;
   const sbUrl = process.env.NEXT_PUBLIC_SUPABASE_URL_LC_CHATBOT;
 
   const client = createClient(sbUrl, sbApiKey);

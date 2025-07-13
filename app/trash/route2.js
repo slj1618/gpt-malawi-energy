@@ -3,7 +3,8 @@ import { ChatOpenAI } from "@langchain/openai";
 import { ChatPromptTemplate } from "@langchain/core/prompts";
 import { StringOutputParser } from "@langchain/core/output_parsers";
 import { RunnableSequence } from "@langchain/core/runnables";
-import { serverSupabase } from "../../lib/supabase.mjs";
+import serverSupabase from "../../lib/supabase.mjs";
+import { AIMessage, HumanMessage } from "@langchain/core/messages";
 
 // Initialize your LLM
 const llm = new ChatOpenAI({
@@ -40,28 +41,28 @@ export async function POST(req) {
     }
 
     // --- 2. Fetch Chat History from Supabase ---
-    // let chatHistory = [];
-    // const { data: history, error: historyError } = await serverSupabase
-    //   .from("chat_messages")
-    //   .select("role, content")
-    //   .eq("conversation_id", conversationId)
-    //   // .eq('user_id', userId) // Important for RLS and user-specific history
-    //   .order("created_at", { ascending: true });
+    let chatHistory = [];
+    const { data: history, error: historyError } = await serverSupabase
+      .from("chat_messages")
+      .select("role, content")
+      .eq("conversation_id", conversationId)
+      // .eq('user_id', userId) // Important for RLS and user-specific history
+      .order("created_at", { ascending: true });
 
-    // if (historyError) {
-    //   console.error("Error fetching chat history:", historyError);
-    //   return NextResponse.json(
-    //     { error: "Failed to fetch chat history" },
-    //     { status: 500 }
-    //   );
-    // }
+    if (historyError) {
+      console.error("Error fetching chat history:", historyError);
+      return NextResponse.json(
+        { error: "Failed to fetch chat history" },
+        { status: 500 }
+      );
+    }
 
-    // // Format history for Langchain
-    // chatHistory = history.map((msg) =>
-    //   msg.role === "human"
-    //     ? new HumanMessage(msg.content)
-    //     : new AIMessage(msg.content)
-    // );
+    // Format history for Langchain
+    chatHistory = history.map((msg) =>
+      msg.role === "human"
+        ? new HumanMessage(msg.content)
+        : new AIMessage(msg.content)
+    );
 
     // --- 3. Define Langchain Chain/Agent ---
     const chatPrompt = ChatPromptTemplate.fromMessages([
