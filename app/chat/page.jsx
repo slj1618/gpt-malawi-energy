@@ -21,18 +21,23 @@ export default function ChatPageDark() {
     {
       id: 0,
       role: "assistant",
-      content: "Hello! I\u2019m GME AI. How can I help you today?",
+      content: "Hello! I\u2019m GME. How can I help you today?",
     },
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [conversationId, setConversationId] = useState(null);
   const [seconds, setSeconds] = useState(0);
   const [time, setTime] = useState([]);
+  const [model, setModel] = useState("flash");
   // ─── refs ───────────────────────────────────────────────────────────
   const endRef = useRef(null);
   const textareaRef = useRef(null);
   const tick = useRef(null);
+
+  // ─── helpers ────────────────────────────────────────────────────────
+  const closeMobileNav = () => setMobileNavOpen(false);
 
   // ─── send message to backend ────────────────────────────────────────
   const sendMessage = useCallback(async () => {
@@ -54,7 +59,11 @@ export default function ChatPageDark() {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: userContent, conversationId }),
+        body: JSON.stringify({
+          message: userContent,
+          conversationId,
+          model: model,
+        }),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
@@ -123,8 +132,6 @@ export default function ChatPageDark() {
       "prose prose-invert prose-sm whitespace-pre-wrap rounded-lg p-3 shadow-md"
     );
 
-    console.log(typeof content, role);
-
     const renderContent =
       typeof content === "string" ? (
         <Markdown remarkPlugins={[remarkGfm]}>{content}</Markdown>
@@ -181,11 +188,38 @@ export default function ChatPageDark() {
   return (
     <div className="flex h-screen w-full overflow-hidden bg-[#202123] text-gray-100 font-inter">
       {/* ── sidebar ── */}
-      <aside className="hidden md:flex h-full w-64 flex-col border-r border-gray-700 bg-[#202123]">
+      <aside
+        /* 0. fixed for mobile, static for ≥md  */
+        className={clsx(
+          "fixed inset-y-0 left-0 z-40 w-64 bg-[#202123] border-r border-gray-700 transition-transform duration-200 ease-in-out",
+          "md:static md:translate-x-0", // desktop
+          mobileNavOpen ? "translate-x-0" : "-translate-x-full" // mobile
+        )}
+      >
         <header className="flex items-center gap-3 border-b border-gray-700 px-5 py-4">
           <Bot size={24} className="text-emerald-400" />
           <span className="text-xl font-bold">GME 1.5</span>
         </header>
+
+        {/* Model Selection Dropdown */}
+        <div className="m-3">
+          <label
+            htmlFor="model-select"
+            className="block text-sm font-medium text-gray-300 mb-1"
+          >
+            Choose Model:
+          </label>
+          <select
+            id="model-select"
+            value={model}
+            onChange={(e) => setModel(e.target.value)}
+            className="w-full rounded-md border border-gray-600 bg-[#282933] py-2 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            disabled={loading}
+          >
+            <option value="flash">GME 1.5 Flash</option>
+            <option value="heavy">GME 1.5 Heavy</option>
+          </select>
+        </div>
 
         <button
           onClick={startNewChat}
@@ -201,7 +235,24 @@ export default function ChatPageDark() {
             No previous conversations. Start a new one!
           </div>
         </nav>
+
+        {/* close button visible only on mobile */}
+        <button
+          onClick={closeMobileNav}
+          className="absolute right-2 top-2 rounded p-2 text-gray-400 hover:text-white md:hidden"
+          aria-label="Close menu"
+        >
+          ✕
+        </button>
       </aside>
+
+      {/* backdrop when sidebar is open (mobile only) */}
+      {mobileNavOpen && (
+        <div
+          onClick={closeMobileNav}
+          className="fixed inset-0 z-30 bg-black/40 backdrop-blur-sm md:hidden"
+        />
+      )}
 
       {/* ── main chat ── */}
       <section className="flex flex-1 flex-col">
@@ -210,6 +261,7 @@ export default function ChatPageDark() {
           <button
             className="rounded-md p-2 hover:bg-[#2a2b2d]"
             aria-label="Menu"
+            onClick={() => setMobileNavOpen((o) => !o)} // NEW
           >
             <Menu size={20} className="text-gray-300" />
           </button>

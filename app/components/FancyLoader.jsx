@@ -1,31 +1,15 @@
-"use client";
-// A colourful gradient ring spinner (no extra deps)
-// TailwindCSS 3.4+ required for arbitrary values like m-[2px].
-// Usage: <FancyLoader size={32} />
+// components/FancyLoader.jsx
+import React from "react";
 
-export default function FancyLoader({ size = 32 }) {
-  // keep ring 2px regardless of the diameter
-  const innerOffset = 2;
+const FancyLoader = ({ size = 24, color = "text-emerald-400" }) => {
   return (
-    <div
-      className="relative inline-flex mr-3"
-      style={{ width: size, height: size }}
-      role="status"
-      aria-label="Loading"
-    >
-      {/* rotating outer gradient */}
-      <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-blue-500 via-purple-500 to-emerald-500 animate-spin" />
-
-      {/* inner mask to create the ring effect */}
+    <div className={`flex items-center justify-center mr-3 ${color}`}>
       <div
-        className="absolute rounded-full bg-zinc-900 dark:bg-zinc-800" // matches page bg
-        style={{
-          top: innerOffset,
-          left: innerOffset,
-          right: innerOffset,
-          bottom: innerOffset,
-        }}
-      />
+        className="animate-spin rounded-full border-2 border-t-2 border-emerald-400 border-opacity-25"
+        style={{ width: size, height: size, borderTopColor: "currentColor" }}
+      ></div>
     </div>
   );
-}
+};
+
+export default FancyLoader;

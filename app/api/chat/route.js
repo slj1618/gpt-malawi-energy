@@ -4,13 +4,14 @@ import { answerChain } from "../../lib/ragModel"; // 👈 NEW
 import serverSupabase from "../../lib/supabase.mjs";
 import { ConversationSummaryMemory } from "langchain/memory";
 import { llmSummary } from "../../lib/ragModel";
+import { answerChainModelFlash } from "../../lib/ragModelFlash";
 // import { rowsToMessages } from "../../lib/history";
 
 /* -------------------------------------------------- */
 
 export async function POST(req) {
   try {
-    const { message, conversationId: clientCid } = await req.json();
+    const { message, conversationId: clientCid, model } = await req.json();
     if (!message) {
       return NextResponse.json(
         { error: "Message is required" },
@@ -65,10 +66,19 @@ export async function POST(req) {
     /* 3️⃣  call the RAG chain – give it both the       */
     /*     current question and the previous messages   */
     const t0 = Date.now();
-    const botReply = await answerChain.invoke({
-      question: message,
-      chat_history: chatHistory, // summary of the chat history
-    });
+    let botReply;
+    console.log("model: ", model);
+    if (model === "flash") {
+      botReply = await answerChainModelFlash.invoke({
+        question: message,
+        chat_history: chatHistory, // summary of the chat history
+      });
+    } else {
+      botReply = await answerChain.invoke({
+        question: message,
+        chat_history: chatHistory, // summary of the chat history
+      });
+    }
     const t1 = Date.now();
     console.log(`Time taken to answer: ${(t1 - t0) / 1000} seconds`);
 
