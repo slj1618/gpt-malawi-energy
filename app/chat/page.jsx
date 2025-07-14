@@ -173,9 +173,12 @@ export default function ChatPageDark() {
                 <div className={wrapper}>{renderContent}</div>
 
                 {/* Timestamp */}
-                <span className="mt-1 self-start text-xs text-gray-400">
-                  {timeTaken || Math.floor(seconds / 1000)}s
-                </span>
+                {timeTaken === 0 ? null : (
+                  <span className="mt-1 self-start text-xs text-gray-400">
+                    {/* {timeTaken || Math.floor(seconds / 1000)}s */}
+                    {timeTaken}s
+                  </span>
+                )}
               </div>
             </div>
           )}
@@ -183,6 +186,8 @@ export default function ChatPageDark() {
       </div>
     );
   };
+
+  console.log(time);
 
   // ─── UI ──────────────────────────────────────────────────────────────
   return (
@@ -291,6 +296,7 @@ export default function ChatPageDark() {
                   Thinking… {Math.floor(seconds / 1000)}s
                 </span>
               }
+              timeTaken={0}
             />
           )}
 
