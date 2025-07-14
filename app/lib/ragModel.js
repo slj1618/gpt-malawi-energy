@@ -60,7 +60,7 @@ GUIDELINES
 3. Never invent facts or speculate beyond step 2.  
 4. Keep the tone warm and approachable.  
 5. Aim for clarity in ≤ 200 words unless more detail is essential.
-6. Format the output as a Markdown
+6. Format the output as a Markdown style (emphasize key words or group of words by making them BOLD)
 7. Be precise, structure and concise.
 8. Don't be repetitive
 9. Never mention 'context' in your answer

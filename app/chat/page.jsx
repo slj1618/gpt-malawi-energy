@@ -5,6 +5,9 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Plus, Bot, Send, User, Menu, LoaderCircle } from "lucide-react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import clsx from "clsx";
+import FancyLoader from "../components/FancyLoader";
+import GmeLoader from "../components/GmeLoader";
 
 /*
   This component:
@@ -25,6 +28,7 @@ export default function ChatPageDark() {
   const [loading, setLoading] = useState(false);
   const [conversationId, setConversationId] = useState(null);
   const [seconds, setSeconds] = useState(0);
+  const [time, setTime] = useState([]);
   // ─── refs ───────────────────────────────────────────────────────────
   const endRef = useRef(null);
   const textareaRef = useRef(null);
@@ -63,6 +67,7 @@ export default function ChatPageDark() {
       ]);
       const t1 = Date.now();
       setSeconds((t1 - t0) / 1000);
+      setTime((prev) => [...prev, Math.floor((t1 - t0) / 1000)]);
     } catch (err) {
       console.error(err);
       setMessages((prev) => [
@@ -91,6 +96,7 @@ export default function ChatPageDark() {
     ]);
     setConversationId(null);
     setInput("");
+    setTime([]);
     setLoading(false);
   };
 
@@ -108,11 +114,23 @@ export default function ChatPageDark() {
   }, [input]);
 
   // ─── message bubble ─────────────────────────────────────────────────
-  const Message = ({ role, content, id }) => {
+  const Message = ({ role, content, id, timeTaken = 0 }) => {
     const isUser = role === "user";
-    const bubbleCls = isUser ? "bg-[#2a2b2d]" : "bg-[#3c3e4a]";
+    const bubbleCls = isUser ? "bg-[#3c3e4a]" : "bg-[#2a2b2d]";
     const Icon = isUser ? User : Bot;
     const iconColor = isUser ? "text-gray-400" : "text-emerald-400";
+    const wrapper = clsx(
+      "prose prose-invert prose-sm whitespace-pre-wrap rounded-lg p-3 shadow-md"
+    );
+
+    console.log(typeof content, role);
+
+    const renderContent =
+      typeof content === "string" ? (
+        <Markdown remarkPlugins={[remarkGfm]}>{content}</Markdown>
+      ) : (
+        content
+      );
 
     return (
       <div key={id} className="w-full py-6">
@@ -131,15 +149,28 @@ export default function ChatPageDark() {
               <Icon size={22} className={`${iconColor} shrink-0 pt-1`} />
             </>
           ) : (
-            <>
+            <div className="flex items-start gap-2">
+              {/* Avatar / icon */}
               <Icon size={22} className={`${iconColor} shrink-0 pt-1`} />
-              <div
-                className={`prose prose-invert prose-sm whitespace-pre-wrap rounded-lg p-3 shadow-md max-w-[calc(100%-50px)] ${bubbleCls}`}
-              >
-                {content}
-                {/* <Markdown remarkPlugins={[remarkGfm]}>{content}</Markdown> */}
+
+              {/* Bubble + timestamp */}
+              <div className="flex flex-col">
+                {/* <div
+                  className={`prose prose-invert prose-sm whitespace-pre-wrap rounded-lg p-3 shadow-md ${bubbleCls}`}
+                >
+                  {content}
+                </div> */}
+
+                {/* <GmeLoader loading={loading} /> */}
+
+                <div className={wrapper}>{renderContent}</div>
+
+                {/* Timestamp */}
+                <span className="mt-1 self-start text-xs text-gray-400">
+                  {timeTaken || Math.floor(seconds / 1000)}s
+                </span>
               </div>
-            </>
+            </div>
           )}
         </div>
       </div>
@@ -189,7 +220,11 @@ export default function ChatPageDark() {
         <div className="flex-1 overflow-y-auto space-y-2 pt-4 pb-28">
           {messages.map((m, index) => (
             <div key={index}>
-              <Message key={m.id} {...m} />
+              <Message
+                key={m.id}
+                {...m}
+                timeTaken={time[Math.ceil(index / 2) - 1]}
+              />
             </div>
           ))}
 
@@ -199,7 +234,8 @@ export default function ChatPageDark() {
               role="assistant"
               content={
                 <span className="inline-flex items-center text-gray-300">
-                  <LoaderCircle className="mr-2 animate-spin" size={18} />{" "}
+                  {/* <LoaderCircle className="mr-2 animate-spin" size={18} />{" "} */}
+                  <FancyLoader size={28} /> {"  "}
                   Thinking… {Math.floor(seconds / 1000)}s
                 </span>
               }

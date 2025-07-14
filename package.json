@@ -15,6 +15,7 @@
     "@langchain/google-genai": "^0.2.14",
     "@langchain/openai": "^0.5.18",
     "@supabase/supabase-js": "^2.50.0",
+    "clsx": "^2.1.1",
     "langchain": "^0.3.29",
     "langsmith": "^0.3.40",
     "lucide-react": "^0.514.0",
