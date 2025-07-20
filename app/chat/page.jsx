@@ -187,8 +187,6 @@ export default function ChatPageDark() {
     );
   };
 
-  console.log(time);
-
   // ─── UI ──────────────────────────────────────────────────────────────
   return (
     <div className="flex h-screen w-full overflow-hidden bg-[#202123] text-gray-100 font-inter">
@@ -223,6 +221,7 @@ export default function ChatPageDark() {
           >
             <option value="flash">GME 1.5 Flash</option>
             <option value="heavy">GME 1.5 Heavy</option>
+            <option value="hulk">GME 1.5 Hulk</option>
           </select>
         </div>
 

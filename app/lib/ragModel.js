@@ -3,13 +3,14 @@ import { ChatOpenAI } from "@langchain/openai";
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 import { StringOutputParser } from "@langchain/core/output_parsers";
 import { config } from "dotenv";
-import { retriever } from "./retriever.js";
+// import { retriever } from "./retriever.js";
 import {
   RunnableLambda,
   RunnablePassthrough,
   RunnableSequence,
 } from "@langchain/core/runnables";
 import { splitQuestions } from "./function.js";
+import { retrieverGraph } from "./graphRetriever.js";
 config({ path: ".env.local" });
 
 const openAIApiKey = process.env.OPENAI_API_KEY;
@@ -39,7 +40,7 @@ const llmSummary = new ChatGoogleGenerativeAI({
 
 const creativeLlm = new ChatGoogleGenerativeAI({
   model: "gemini-2.0-flash-001",
-  temperature: 0.15,
+  temperature: 0.35,
   googleApiKey: process.env.GOOGLE_API_KEY,
 });
 
@@ -93,7 +94,8 @@ const standaloneChain = RunnableSequence.from([
 
 const multiQueryTemplate = `You are a helpful assistant that generates multiple sub-questions related to an input question. \n
 The goal is to break down the input into a set of sub-problems / sub-questions that can be answers in isolation. \n
-Generate multiple search queries related to: {question} \n
+Generate 3 to 5 search queries related to: {question}. \n
+Return only the questions, no additional text, just the questions. \n
 Output (3 queries):`;
 
 const multiQueryPrompt = PromptTemplate.fromTemplate(multiQueryTemplate);
@@ -107,7 +109,7 @@ const multiQueryChain = RunnableSequence.from([
 
 const retrieveChain = RunnableSequence.from([
   new RunnablePassthrough(),
-  retriever,
+  retrieverGraph,
 ]);
 
 const retrieveDocs = new RunnableLambda({

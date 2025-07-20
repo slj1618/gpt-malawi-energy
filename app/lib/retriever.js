@@ -20,4 +20,6 @@ const vectorStore = new SupabaseVectorStore(embeddings, {
 
 const retriever = vectorStore.asRetriever({ k: 25 });
 
+// Graph Retrievers
+
 export { retriever };

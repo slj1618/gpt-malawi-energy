@@ -5,6 +5,7 @@ import serverSupabase from "../../lib/supabase.mjs";
 import { ConversationSummaryMemory } from "langchain/memory";
 import { llmSummary } from "../../lib/ragModel"; // Assuming llmSummary is defined here
 import { answerChainModelFlash } from "../../lib/ragModelFlash"; // Assuming this is your "flash" model chain
+import { finalChain } from "../../lib/graphRagModel_001";
 
 /* -------------------------------------------------- */
 
@@ -93,9 +94,15 @@ export async function POST(req) {
         question: message,
         chat_history: chatHistory, // Summary of the chat history
       });
-    } else {
+    } else if (model === "heavy") {
       // Default to "heavy" model
       botReply = await answerChain.invoke({
+        question: message,
+        chat_history: chatHistory, // Summary of the chat history
+      });
+    } else {
+      // Hulk Model
+      botReply = await finalChain.invoke({
         question: message,
         chat_history: chatHistory, // Summary of the chat history
       });
