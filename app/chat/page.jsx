@@ -153,12 +153,12 @@ export default function ChatPageDark() {
               >
                 <Markdown remarkPlugins={[remarkGfm]}>{content}</Markdown>
               </div>
-              <Icon size={22} className={`${iconColor} shrink-0 pt-1`} />
+              {/* <Icon size={22} className={`${iconColor} shrink-0 pt-1`} /> */}
             </>
           ) : (
             <div className="flex items-start gap-2">
               {/* Avatar / icon */}
-              <Icon size={22} className={`${iconColor} shrink-0 pt-1`} />
+              {/* <Icon size={22} className={`${iconColor} shrink-0 pt-1`} /> */}
 
               {/* Bubble + timestamp */}
               <div className="flex flex-col">

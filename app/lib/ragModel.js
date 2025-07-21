@@ -11,6 +11,7 @@ import {
 } from "@langchain/core/runnables";
 import { splitQuestions } from "./function.js";
 import { retrieverGraph } from "./graphRetriever.js";
+import { finalGraphTemplate } from "../const/templates.js";
 config({ path: ".env.local" });
 
 const openAIApiKey = process.env.OPENAI_API_KEY;
@@ -51,36 +52,36 @@ const standAloneQuestionPrompt = PromptTemplate.fromTemplate(
   standAloneQuestionTemplate
 );
 
-const questionTemplate = `You are **GME**, a friendly and concise assistant.
+// const questionTemplate = `You are **GME**, a friendly and concise assistant.
 
-───────────────────────────
-GUIDELINES
-1. **Ground your answer strictly in the “Context” block.**  
-   • Cite or paraphrase only what is given.  
+// ───────────────────────────
+// GUIDELINES
+// 1. **Ground your answer strictly in the “Context” block.**
+//    • Cite or paraphrase only what is given.
 
-3. Never invent facts or speculate beyond step 2.  
-4. Keep the tone warm and approachable.  
-5. Aim for clarity in ≤ 200 words unless more detail is essential.
-6. Format the output as a Markdown style (emphasize key words or group of words by making them BOLD)
-7. Be precise, structure and concise.
-8. Don't be repetitive
-9. Never mention 'context' in your answer
-───────────────────────────
+// 3. Never invent facts or speculate beyond step 2.
+// 4. Keep the tone warm and approachable.
+// 5. Aim for clarity in ≤ 200 words unless more detail is essential.
+// 6. Format the output as a Markdown style (emphasize key words or group of words by making them BOLD)
+// 7. Be precise, structure and concise.
+// 8. Don't be repetitive
+// 9. Never mention 'context' in your answer
+// ───────────────────────────
 
-### QUESTION
-{question}
+// ### QUESTION
+// {question}
 
-### CONTEXT  
-{context}
+// ### CONTEXT
+// {context}
 
-───────────────────────────
-**YOUR ANSWER**
-<Write the answer here, following the guidelines above>`;
+// ───────────────────────────
+// **YOUR ANSWER**
+// <Write the answer here, following the guidelines above>`;
 
 // 2. **If the context is insufficient** to answer fully:
 //    • Just say "I don't know"
 
-const questionPrompt = PromptTemplate.fromTemplate(questionTemplate);
+const questionPrompt = PromptTemplate.fromTemplate(finalGraphTemplate);
 
 const standaloneChain = RunnableSequence.from([
   {

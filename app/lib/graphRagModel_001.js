@@ -13,6 +13,11 @@ import { StringOutputParser } from "@langchain/core/output_parsers";
 import { ChatPromptTemplate } from "@langchain/core/prompts";
 import { fuseParallelOutputs, splitQuestions } from "./function";
 import { config } from "dotenv";
+import {
+  finalGraphTemplate,
+  multiQueryGraphTemplate,
+  standAloneQuestionTemplate,
+} from "../const/templates";
 config({ path: ".env.local" });
 
 class NoApocGraph extends Neo4jGraph {
@@ -83,9 +88,6 @@ async function retriever(question, k = 20) {
   };
 }
 
-const standAloneQuestionTemplate =
-  "Given a question and the chat history, convert it to a standalone question. RETURN only the standalone question, no other text. \nQuestion: {question}\nChat History: {chat_history}";
-
 const standAloneQuestionPrompt = ChatPromptTemplate.fromTemplate(
   standAloneQuestionTemplate
 );
@@ -100,23 +102,9 @@ const standaloneChain = RunnableSequence.from([
   new StringOutputParser(),
 ]);
 
-const multiQueryTemplate = `
-  You are a helpful assistant that generates multiple sub-questions related to an input question.
-  The goal is to break down the input into a set of sub-problems / sub-questions that can be answered in isolation.
-  Generate multiple search questions related to:
-  <question>
-  {question}
-  </question>
-  Knowing these relationships:
-  <relationships>
-  {relationships}
-  </relationships>
-  
-  Return ONLY the exact 10 questions, NO additional text.
-  Output:
-`;
-
-const multiQueryPrompt = ChatPromptTemplate.fromTemplate(multiQueryTemplate);
+const multiQueryPrompt = ChatPromptTemplate.fromTemplate(
+  multiQueryGraphTemplate
+);
 
 const relationshipsRunnable = new RunnableLambda({
   func: async (input) => {
@@ -177,34 +165,7 @@ const fuseRunnable = new RunnableLambda({
 
 const t_chain = parallelGather.pipe(fuseRunnable);
 
-const finalTemplate = `
-  You are **ChatMind AI**, a friendly and concise assistant.
-
-  ───────────────────────────
-  GUIDELINES
-  1. **Ground your answer strictly in the “Context” block.**
-    • Cite or paraphrase only what is given.
-  2. **If the context is insufficient** to answer fully:
-    • Say 'I don't know!'
-  3. Never invent facts or speculate beyond step 2.
-  4. Keep the tone warm and approachable.
-  5. Aim for clarity in ≤ 200 words unless more detail is essential.
-  6. Be precise, structure and concise.
-  7. Don't be repetitive
-  8. Do not mention 'context' just answer.
-  ───────────────────────────
-
-  ### QUESTION
-  {question}
-
-  ### CONTEXT
-  {context}
-
-  ───────────────────────────
-  **YOUR ANSWER**
-  <Write the answer here, following the guidelines above>
-`;
-const finalPromt = ChatPromptTemplate.fromTemplate(finalTemplate);
+const finalPromt = ChatPromptTemplate.fromTemplate(finalGraphTemplate);
 
 const parallelInputs = new RunnableMap({
   steps: {

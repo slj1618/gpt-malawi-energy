@@ -1,4 +1,6 @@
 // app/api/chat/route.ts   (✱ Node runtime, not Edge ✱)
+export const runtime = "nodejs";
+
 import { NextResponse } from "next/server";
 import { answerChain } from "../../lib/ragModel"; // Assuming this is your "heavy" model chain
 import serverSupabase from "../../lib/supabase.mjs";
