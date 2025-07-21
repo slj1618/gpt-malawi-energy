@@ -13,7 +13,7 @@ Knowing these relationships:
 {relationships}
 </relationships>
 
-Return ONLY the exact 10 questions, NO additional text.
+Return ONLY the exact 5 questions, NO additional text.
 Output:
 `;
 

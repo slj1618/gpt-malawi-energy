@@ -49,13 +49,13 @@ export async function structuredRetriever(question, { entityChain }) {
   const entities = await entityChain.invoke({ question }); // array of entity strings
 
   const cypher = `
-    CALL db.index.fulltext.queryNodes('entity', $query, {limit: 3})
+    CALL db.index.fulltext.queryNodes('entity', $query, {limit: 2})
     YIELD node, score
     MATCH (node)-[r]-(neighbor)
     WHERE NOT type(r) IN ['MENTION','MENTIONS','HAS_CHUNK']
     WITH DISTINCT node, r, neighbor, score
     ORDER BY score DESC
-    LIMIT 75
+    LIMIT 25
     RETURN
     node.id + ' (' + apoc.convert.toJson(apoc.map.removeKeys(properties(node), ['embedding'])) + ') ' +
     '- [' + type(r) + ' (' + apoc.convert.toJson(apoc.map.removeKeys(properties(r), ['embedding'])) + ')] - ' +
@@ -75,12 +75,16 @@ export async function structuredRetriever(question, { entityChain }) {
     //   //   fulltextLimit,
     // });
 
-    const response = await graph.query(cypher, {
-      query: queryString,
-    });
+    try {
+      const response = await graph.query(cypher, {
+        query: queryString,
+      });
 
-    for (const row of response) {
-      outputs.push(row.output);
+      for (const row of response) {
+        outputs.push(row.output);
+      }
+    } catch (error) {
+      console.error(error);
     }
   }
   //   console.log("str: ", outputs.join("\n"));

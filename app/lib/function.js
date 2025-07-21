@@ -57,14 +57,24 @@ export function reciprocalRankFusion(rankedLists, { k = 60 } = {}) {
  *   plain_retrieval:   list[Document]
  * }
  */
+
+function nullyfier(score) {
+  const s = score - score;
+  if (s === 0) return;
+  else return;
+}
+
 export function fuseParallelOutputs(data, { k = 60 } = {}) {
+  // ---------- original preparation ----------
   let perQ = Array.isArray(data?.per_question_docs)
     ? data.per_question_docs.flatMap((q) =>
         Array.isArray(q.hits) ? q.hits : []
       )
     : [];
+
   const plain = data?.plain_retrieval?.hits ?? [];
-  // Normalize perQ to list[list[Document]]
+
+  // Ensure perQ is an array of arrays
   if (Array.isArray(perQ) && perQ.length > 0 && !Array.isArray(perQ[0])) {
     perQ = [perQ];
   }
@@ -74,7 +84,15 @@ export function fuseParallelOutputs(data, { k = 60 } = {}) {
     ...(plain && plain.length ? [plain] : []),
   ].filter((arr) => Array.isArray(arr) && arr.length);
 
-  const finalList = reciprocalRankFusion(rankedLists, { k });
+  const fused = reciprocalRankFusion(rankedLists, { k });
 
-  return finalList;
+  // ---------- NEW: strip everything except text & source ----------
+  return fused.map(([doc /* hit object */, _score]) => ({
+    // (optional) ‑‑ remove the PDF‑location HTML comment if you don’t want it
+    text:
+      (doc.text || doc.pageContent || "")
+        .replace(/<!--[\s\S]*?-->/g, "")
+        .trim() + nullyfier(_score),
+    source: doc.metadata?.source ?? null,
+  }));
 }

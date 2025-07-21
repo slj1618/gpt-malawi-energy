@@ -60,8 +60,8 @@ const creativeLlm = new ChatGoogleGenerativeAI({
 const entityChain = new RunnableLambda({
   func: async (inp) => {
     return retrieverEntity(inp, {
-      k: 20,
-      threshold: 0.85,
+      k: 7,
+      threshold: 0.9,
       useScores: false,
     });
   },
