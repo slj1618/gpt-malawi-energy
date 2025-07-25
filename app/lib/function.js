@@ -94,5 +94,6 @@ export function fuseParallelOutputs(data, { k = 60 } = {}) {
         .replace(/<!--[\s\S]*?-->/g, "")
         .trim() + nullyfier(_score),
     source: doc.metadata?.source ?? null,
+    date: doc.metadata?.date ?? null,
   }));
 }

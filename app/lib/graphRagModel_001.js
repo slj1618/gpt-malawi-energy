@@ -27,7 +27,7 @@ class NoApocGraph extends Neo4jGraph {
   }
 
   /**
-   * Drop-in replacement for Neo4jGraph.initialize that
+   * Drop-in replacement for Neo4jinitialize that
    * returns a NoApocGraph instance **without** touching APOC.
    */
   static async initialize(config) {
@@ -124,19 +124,77 @@ const assembleInputs = new RunnableMap({
 
 //  Extract questions
 const extractQuestionsRunnable = new RunnableLambda({
-  func: async (raw) => splitQuestions(raw),
+  func: async (raw) => {
+    const splits = splitQuestions(raw);
+    return splits;
+  },
 });
 
 const unstructuredRetrieverRunnable = new RunnableLambda({
   func: async (singleQuestion) => {
-    const docs = await retrieverUnstructured(singleQuestion, 20);
-    return {
-      question: singleQuestion,
-      hits: docs.map((d) => ({
-        text: d.pageContent,
-        metadata: d.metadata,
-      })),
+    const docs = await retrieverUnstructured(singleQuestion, 5);
+    const element_ids = docs.map((d) => d.metadata.element_id);
+
+    const QUERY = `
+  MATCH (c:Chunk)
+  WHERE elementId(c) IN $elementIds // Use IN for matching against a list of IDs
+  MATCH (c)-[:FROM_DOCUMENT]->(d:Document) // Assuming relationship direction FROM Chunk TO Document
+  RETURN elementId(c) AS chunk_element_id, d.path AS source, d.date_of_issue AS date
+`;
+
+    // 3. Prepare the parameters for the query
+    const params = {
+      elementIds: element_ids,
     };
+
+    // 4. Execute the query using your graph object's query method
+    //    This part depends on your specific Neo4j driver or library (e.g., neo4j-driver, @neo4j/graphql-ogm, custom wrapper)
+    //    I'll provide a generic example, you might need to adjust based on your `graph` implementation.
+
+    try {
+      // Example for a generic graph.query() that returns results
+      const result = await graph.query(QUERY, params);
+
+      // 5. Process the results and update your docs metadata
+      const metadataMap = new Map();
+      result.forEach((record) => {
+        const chunkElementId = String(record.chunk_element_id); // Ensure it's a string if your element_ids are strings
+        const source = record.source;
+        const date = record.date;
+        metadataMap.set(chunkElementId, { source, date });
+      });
+
+      // Now, iterate through your original `docs` and update their metadata
+      const updatedDocs = docs.map((doc) => {
+        const currentElementId = doc.metadata.element_id;
+        if (metadataMap.has(currentElementId)) {
+          const { source, date } = metadataMap.get(currentElementId);
+          return {
+            text: doc.pageContent,
+            metadata: {
+              // chunk_id: doc.metadata.element_id,
+              source: source,
+              date: date, // 'date_of_issue' in Neo4j becomes 'date' in your client metadata
+            },
+          };
+        }
+        return doc; // Return original doc if no matching metadata found
+      });
+
+      // You would typically return or use `updatedDocs` here
+      // return updatedDocs;
+      return {
+        question: singleQuestion,
+        hits: updatedDocs.map((d) => ({
+          text: d.text,
+          metadata: d.metadata,
+        })),
+      };
+    } catch (error) {
+      console.error("Error fetching document metadata from Neo4j:", error);
+      // Handle the error appropriately
+      throw error;
+    }
   },
 });
 

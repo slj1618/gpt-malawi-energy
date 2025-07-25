@@ -9,7 +9,8 @@ const NEO4J_USERNAME = process.env.NEO4J_USERNAME;
 const NEO4J_PASSWORD = process.env.NEO4J_PASSWORD;
 
 const embeddings = new OpenAIEmbeddings({
-  model: "text-embedding-ada-002", // or another embedding model
+  // model: "text-embedding-ada-002", // or another embedding model
+  model: "text-embedding-3-small", // or another embedding model
   openAIApiKey: openAIApiKey,
 });
 
@@ -22,17 +23,35 @@ RETURN
   node { .source, .parentId, element_id: elementId(node) } AS metadata
 `;
 
-// const retrievalNodeQuery = `
-// RETURN
-//   node.text AS text
-// `;
+const retrievalNodeQuery = `
+RETURN
+  node.id AS text,
+  score,
+  node { .source, .parentId, element_id: elementId(node) } AS metadata
+`;
+
+const retrievalCommunityQuery = `
+RETURN
+  node.top_terms AS subjects,
+  score,
+  node { .communityId, element_id: elementId(node) } AS metadata
+`;
+
+const retrievalSummaryQuery = `
+RETURN
+  node.summary AS summary,
+  score,
+  node { .path, .date_of_issue, element_id: elementId(node) } AS metadata
+`;
 
 const vectorStore = await Neo4jVectorStore.fromExistingGraph(embeddings, {
   url: NEO4J_URI,
   username: NEO4J_USERNAME,
   password: NEO4J_PASSWORD,
-  indexName: "doc_chunk_embedding_index",
-  nodeLabel: "DocumentChunk",
+  // indexName: "doc_chunk_embedding_index",
+  // nodeLabel: "DocumentChunk",
+  indexName: "chunkEmbeddingIndex",
+  nodeLabel: "Chunk",
   textNodeProperties: ["text"],
   embeddingNodeProperty: "embedding",
   retrievalQuery,
@@ -47,13 +66,45 @@ const vectorNodeStore = await Neo4jVectorStore.fromExistingGraph(embeddings, {
   url: NEO4J_URI,
   username: NEO4J_USERNAME,
   password: NEO4J_PASSWORD,
-  indexName: "node_Retriever_index",
-  nodeLabel: "Retriever",
-  textNodeProperties: ["text"],
-  embeddingNodeProperty: "embedding",
-  retrievalQuery,
+  // indexName: "node_Retriever_index",
+  // nodeLabel: "Retriever",
+  indexName: "entityEmbeddingIdIndex",
+  nodeLabel: "__Entity__",
+  textNodeProperties: ["name", "id"],
+  embeddingNodeProperty: "embedding_id",
+  retrievalQuery: retrievalNodeQuery,
   searchType: "vector",
 });
+
+const vectorCommunityStore = await Neo4jVectorStore.fromExistingGraph(
+  embeddings,
+  {
+    url: NEO4J_URI,
+    username: NEO4J_USERNAME,
+    password: NEO4J_PASSWORD,
+    indexName: "communityEmbeddingIdx",
+    nodeLabel: "Community",
+    textNodeProperties: ["top_terms"],
+    embeddingNodeProperty: "embedding_top_terms",
+    retrievalQuery: retrievalCommunityQuery,
+    searchType: "vector",
+  }
+);
+
+const vectorSummaryStore = await Neo4jVectorStore.fromExistingGraph(
+  embeddings,
+  {
+    url: NEO4J_URI,
+    username: NEO4J_USERNAME,
+    password: NEO4J_PASSWORD,
+    indexName: "summaryEmbeddingIdx",
+    nodeLabel: "Document",
+    textNodeProperties: ["summary"],
+    embeddingNodeProperty: "embedding_summary",
+    retrievalQuery: retrievalSummaryQuery,
+    searchType: "vector",
+  }
+);
 
 const retrieverNodeGraph = vectorNodeStore.asRetriever({ k: 20 });
 
@@ -71,9 +122,9 @@ function normalizeQuestion(inp) {
 async function retrieverEntity(
   inp,
   {
-    k = 15,
+    k = 5,
     threshold = 0.9,
-    minKeep = 3,
+    minKeep = 2,
     unique = true,
     maxChars = null,
     useScores = false,
@@ -128,7 +179,7 @@ async function retrieverEntity(
   return useScores ? final : final.map((f) => f.text);
 }
 
-async function retrieverUnstructured(q, k = 20) {
+async function retrieverUnstructured(q, k = 15) {
   return vectorStore.similaritySearch(q, k); // Document[]
 }
 
@@ -137,6 +188,8 @@ export {
   retrieverNodeGraph,
   vectorNodeStore,
   vectorStore,
+  vectorCommunityStore,
+  vectorSummaryStore,
   retrieverUnstructured,
   retrieverEntity,
 };

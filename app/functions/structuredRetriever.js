@@ -49,7 +49,8 @@ export async function structuredRetriever(question, { entityChain }) {
   const entities = await entityChain.invoke({ question }); // array of entity strings
 
   const cypher = `
-    CALL db.index.fulltext.queryNodes('entity', $query, {limit: 2})
+    // CALL db.index.fulltext.queryNodes('entity', $query, {limit: 2})
+    CALL db.index.fulltext.queryNodes('entityFulltextIndex', $query, {limit: 2})
     YIELD node, score
     MATCH (node)-[r]-(neighbor)
     WHERE NOT type(r) IN ['MENTION','MENTIONS','HAS_CHUNK']
@@ -57,9 +58,13 @@ export async function structuredRetriever(question, { entityChain }) {
     ORDER BY score DESC
     LIMIT 25
     RETURN
-    node.id + ' (' + apoc.convert.toJson(apoc.map.removeKeys(properties(node), ['embedding'])) + ') ' +
-    '- [' + type(r) + ' (' + apoc.convert.toJson(apoc.map.removeKeys(properties(r), ['embedding'])) + ')] - ' +
-    neighbor.id + ' (' + apoc.convert.toJson(apoc.map.removeKeys(properties(neighbor), ['embedding'])) + ')' AS output,
+    // node.id + ' (' + apoc.convert.toJson(apoc.map.removeKeys(properties(node), ['embedding'])) + ') ' +
+    // '- [' + type(r) + ' (' + apoc.convert.toJson(apoc.map.removeKeys(properties(r), ['embedding'])) + ')] - ' +
+    // neighbor.id + ' (' + apoc.convert.toJson(apoc.map.removeKeys(properties(neighbor), ['embedding'])) + ')' AS output,
+
+    node.id + ' (' + apoc.convert.toJson(apoc.map.removeKeys(properties(node), ['embedding', 'embedding_id'])) + ') ' +
+    '- [' + type(r) + ' (' + apoc.convert.toJson(apoc.map.removeKeys(properties(r), ['embedding', 'embedding_id'])) + ')] - ' +
+    neighbor.id + ' (' + apoc.convert.toJson(apoc.map.removeKeys(properties(neighbor), ['embedding', 'embedding_id'])) + ')' AS output,
     score;
   `;
 
