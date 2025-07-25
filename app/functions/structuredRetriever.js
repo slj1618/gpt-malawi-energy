@@ -56,7 +56,7 @@ export async function structuredRetriever(question, { entityChain }) {
     WHERE NOT type(r) IN ['MENTION','MENTIONS','HAS_CHUNK']
     WITH DISTINCT node, r, neighbor, score
     ORDER BY score DESC
-    LIMIT 25
+    LIMIT 50
     RETURN
     // node.id + ' (' + apoc.convert.toJson(apoc.map.removeKeys(properties(node), ['embedding'])) + ') ' +
     // '- [' + type(r) + ' (' + apoc.convert.toJson(apoc.map.removeKeys(properties(r), ['embedding'])) + ')] - ' +

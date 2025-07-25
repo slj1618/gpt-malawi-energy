@@ -132,7 +132,7 @@ const extractQuestionsRunnable = new RunnableLambda({
 
 const unstructuredRetrieverRunnable = new RunnableLambda({
   func: async (singleQuestion) => {
-    const docs = await retrieverUnstructured(singleQuestion, 5);
+    const docs = await retrieverUnstructured(singleQuestion, 10);
     const element_ids = docs.map((d) => d.metadata.element_id);
 
     const QUERY = `
