@@ -134,7 +134,7 @@ export default function ChatPageDark() {
 
     const renderContent =
       typeof content === "string" ? (
-        <Markdown remarkPlugins={[remarkGfm]}>{content}</Markdown>
+        <Markdown remarkPlugins={[remarkGfm]}>{content.trim()}</Markdown>
       ) : (
         content
       );
