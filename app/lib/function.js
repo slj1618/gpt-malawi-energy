@@ -106,8 +106,8 @@ export function filterDocsByScore(docsAndScores, threshold) {
 
   // Filter documents with score >= threshold
   const filtered = docsAndScores
-    .filter(([doc, score]) => score >= threshold)
-    .map(([doc]) => doc);
+    .filter((pair) => pair[1] >= threshold) // pair[0] doc, pair[1] score
+    .map((pair) => pair[0]);
 
   if (filtered.length > 0) {
     return filtered;
