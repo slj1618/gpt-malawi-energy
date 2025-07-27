@@ -33,7 +33,6 @@ GUIDELINES
 3. **No speculation** beyond steps 1–2.  
 
 4. **Use clear structure:**  
-   - Short introduction (1–2 lines)  
    - Direct answer bullet‑points or brief paragraphs  
    - A **Sources** footer
 
