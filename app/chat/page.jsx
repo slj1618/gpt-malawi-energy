@@ -30,7 +30,7 @@ export default function ChatPageDark() {
   const [conversationId, setConversationId] = useState(null);
   const [seconds, setSeconds] = useState(0);
   const [time, setTime] = useState([]);
-  const [model, setModel] = useState("hulk");
+  const [model, setModel] = useState("von");
   // ─── refs ───────────────────────────────────────────────────────────
   const endRef = useRef(null);
   const textareaRef = useRef(null);
