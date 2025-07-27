@@ -30,7 +30,7 @@ export default function ChatPageDark() {
   const [conversationId, setConversationId] = useState(null);
   const [seconds, setSeconds] = useState(0);
   const [time, setTime] = useState([]);
-  const [model, setModel] = useState("flash");
+  const [model, setModel] = useState("hulk");
   // ─── refs ───────────────────────────────────────────────────────────
   const endRef = useRef(null);
   const textareaRef = useRef(null);
@@ -222,6 +222,7 @@ export default function ChatPageDark() {
             <option value="flash">GME 1.5 Flash</option>
             <option value="heavy">GME 1.5 Heavy</option>
             <option value="hulk">GME 1.5 Hulk</option>
+            <option value="von">GME 1.5 Von</option>
           </select>
         </div>
 

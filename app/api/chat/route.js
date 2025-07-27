@@ -8,6 +8,7 @@ import { ConversationSummaryMemory } from "langchain/memory";
 import { llmSummary } from "../../lib/ragModel"; // Assuming llmSummary is defined here
 import { answerChainModelFlash } from "../../lib/ragModelFlash"; // Assuming this is your "flash" model chain
 import { finalChain } from "../../lib/graphRagModel_001";
+import { finalCommunityChain } from "../../lib/graphRagModel_002";
 
 /* -------------------------------------------------- */
 
@@ -90,25 +91,21 @@ export async function POST(req) {
     let botReply;
     console.log("Selected model: ", model);
 
-    // Invoke the appropriate RAG chain based on the selected model
-    if (model === "flash") {
-      botReply = await answerChainModelFlash.invoke({
-        question: message,
-        chat_history: chatHistory, // Summary of the chat history
-      });
-    } else if (model === "heavy") {
-      // Default to "heavy" model
-      botReply = await answerChain.invoke({
-        question: message,
-        chat_history: chatHistory, // Summary of the chat history
-      });
-    } else {
-      // Hulk Model
-      botReply = await finalChain.invoke({
-        question: message,
-        chat_history: chatHistory, // Summary of the chat history
-      });
-    }
+    const modelChains = {
+      flash: answerChainModelFlash,
+      heavy: answerChain,
+      hulk: finalChain,
+      von: finalCommunityChain,
+    };
+
+    // Default to 'heavy' if model not matched
+    const chain = modelChains[model] || answerChain;
+
+    botReply = await chain.invoke({
+      question: message,
+      chat_history: chatHistory,
+    });
+
     const t1 = Date.now();
     console.log(`Time taken to answer: ${(t1 - t0) / 1000} seconds`);
 

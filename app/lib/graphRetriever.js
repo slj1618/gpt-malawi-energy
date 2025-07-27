@@ -1,6 +1,7 @@
 import { OpenAIEmbeddings } from "@langchain/openai";
 import { config } from "dotenv";
 import { Neo4jVectorStore } from "@langchain/community/vectorstores/neo4j_vector";
+// import { graph } from "./graphRagModel_001";
 config({ path: ".env.local" });
 
 const openAIApiKey = process.env.OPENAI_API_KEY;
@@ -27,7 +28,7 @@ const retrievalNodeQuery = `
 RETURN
   node.id AS text,
   score,
-  node { .source, .parentId, element_id: elementId(node) } AS metadata
+  node { .name } AS metadata
 `;
 
 const retrievalCommunityQuery = `
@@ -39,17 +40,15 @@ RETURN
 
 const retrievalSummaryQuery = `
 RETURN
-  node.summary AS summary,
+  node.summary AS text,
   score,
-  node { .path, .date_of_issue, element_id: elementId(node) } AS metadata
+  node { .path, .date_of_issue, element_id: elementId(node)} AS metadata
 `;
 
 const vectorStore = await Neo4jVectorStore.fromExistingGraph(embeddings, {
   url: NEO4J_URI,
   username: NEO4J_USERNAME,
   password: NEO4J_PASSWORD,
-  // indexName: "doc_chunk_embedding_index",
-  // nodeLabel: "DocumentChunk",
   indexName: "chunkEmbeddingIndex",
   nodeLabel: "Chunk",
   textNodeProperties: ["text"],
@@ -66,8 +65,6 @@ const vectorNodeStore = await Neo4jVectorStore.fromExistingGraph(embeddings, {
   url: NEO4J_URI,
   username: NEO4J_USERNAME,
   password: NEO4J_PASSWORD,
-  // indexName: "node_Retriever_index",
-  // nodeLabel: "Retriever",
   indexName: "entityEmbeddingIdIndex",
   nodeLabel: "__Entity__",
   textNodeProperties: ["name", "id"],
@@ -122,17 +119,18 @@ function normalizeQuestion(inp) {
 async function retrieverEntity(
   inp,
   {
-    k = 5,
-    threshold = 0.9,
+    k = 7,
+    threshold = 0.8,
     minKeep = 2,
     unique = true,
     maxChars = null,
-    useScores = false,
+    // useScores = false,
     assumeSimilarity = true,
     log = false,
   } = {}
 ) {
   const question = normalizeQuestion(inp);
+  // const question_embedding = await embeddings.embedQuery(question);
   let withScores;
 
   if (vectorNodeStore.similaritySearchWithScore) {
@@ -176,7 +174,32 @@ async function retrieverEntity(
     );
   }
 
-  return useScores ? final : final.map((f) => f.text);
+  // const cypher = `
+  // CALL {
+  //   CALL db.index.vector.queryNodes(
+  //     'entityEmbeddingIdIndex', toInteger($k), $question_embedding
+  //   )
+  //   YIELD node, score
+
+  //   // turn the node into a map of its props, minus embedding_id
+  //   WITH apoc.map.removeKey(properties(node), 'embedding_id') AS nodeProps,
+  //       score
+  //   RETURN nodeProps AS node, score
+  // }
+
+  // WITH node, max(score) AS score
+  // ORDER BY score DESC
+  // LIMIT toInteger($k)
+  // RETURN node;
+  // `;
+  // const hybrid_search = graph.query(cypher, {
+  //   question_embedding,
+  //   // question,
+  //   k,
+  // });
+
+  return final.map((f) => f.text);
+  // return (await hybrid_search).map((f) => f.text); // final.map((f) => f.text);
 }
 
 async function retrieverUnstructured(q, k = 15) {
@@ -184,6 +207,7 @@ async function retrieverUnstructured(q, k = 15) {
 }
 
 export {
+  embeddings,
   retrieverGraph,
   retrieverNodeGraph,
   vectorNodeStore,

@@ -45,6 +45,9 @@ GUIDELINES
    - Warm and approachable, without fluff.  
    - Concise: aim for 2–4 sentences per answer.
 
+7. **Precision**
+   - Precise in square brackets the source of each of your claims [name of the document and page if possible].
+
 ──────────────────────────────────
 
 ### QUESTION  
