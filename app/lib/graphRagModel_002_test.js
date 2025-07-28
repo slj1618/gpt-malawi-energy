@@ -23,6 +23,7 @@ import {
   multiQueryGraphTemplate,
   standAloneQuestionTemplate,
 } from "../const/templates";
+import { ChatOpenAI } from "@langchain/openai";
 
 config({ path: ".env.local" });
 
