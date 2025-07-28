@@ -9,6 +9,7 @@ import { llmSummary } from "../../lib/ragModel"; // Assuming llmSummary is defin
 import { answerChainModelFlash } from "../../lib/ragModelFlash"; // Assuming this is your "flash" model chain
 import { finalChain } from "../../lib/graphRagModel_001";
 import { finalCommunityChain } from "../../lib/graphRagModel_002";
+import { finalCommunityChain_test } from "../../lib/graphRagModel_002_test";
 
 /* -------------------------------------------------- */
 
@@ -96,6 +97,7 @@ export async function POST(req) {
       heavy: answerChain,
       hulk: finalChain,
       von: finalCommunityChain,
+      von_test: finalCommunityChain_test,
     };
 
     // Default to 'heavy' if model not matched

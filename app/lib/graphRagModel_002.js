@@ -199,16 +199,7 @@ RETURN collect(chunk) AS combined_chunks
           year: doc.year,
         },
       };
-      return doc; // Return original doc if no matching metadata found
     });
-
-    // return {
-    //   hits: finalContext.map((d) => ({
-    //     text: d.text,
-    //     source: d.source,
-    //     year: d.year,
-    //   })),
-    // };
     return {
       question: singleQuestion,
       hits: updatedDocs.map((d) => ({
