@@ -8,16 +8,11 @@ import {
   RunnableSequence,
 } from "@langchain/core/runnables";
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
-import {
-  embeddings,
-  retrieverUnstructured,
-  vectorSummaryStore,
-} from "./graphRetriever";
+import { embeddings, vectorSummaryStore } from "./graphRetriever";
 import { StringOutputParser } from "@langchain/core/output_parsers";
 import { ChatPromptTemplate } from "@langchain/core/prompts";
 import {
   filterDocsByScore,
-  // fuseParallelOutputs,
   fuseParallelSummaryOutputs,
   selectChunksByRecency,
   splitQuestions,
@@ -25,26 +20,26 @@ import {
 import { config } from "dotenv";
 import {
   finalGraphTemplate,
-  multiQueryGraphTemplate,
+  multiQueryGraphTemplate_test,
   standAloneQuestionTemplate,
 } from "../const/templates";
 import { ChatOpenAI } from "@langchain/openai";
+
 config({ path: ".env.local" });
 
+/**
+ * Custom Neo4jGraph subclass that disables APOC schema discovery,
+ * useful when APOC procedures should be skipped.
+ */
 class NoApocGraph extends Neo4jGraph {
-  /** Skip APOC schema discovery completely */
   async refreshSchema() {
-    /* noop */
+    // Override to disable APOC schema refresh (no-op)
   }
 
-  /**
-   * Drop-in replacement for Neo4jinitialize that
-   * returns a NoApocGraph instance **without** touching APOC.
-   */
   static async initialize(config) {
-    const graph = new NoApocGraph(config); // ← instantiate THIS class
-    await graph.verifyConnectivity(); // still a good idea
-    // DO NOT call graph.refreshSchema(); we just disabled it
+    const graph = new NoApocGraph(config);
+    await graph.verifyConnectivity();
+    // Intentionally skip refreshSchema call
     return graph;
   }
 }
@@ -56,96 +51,63 @@ const graph = await NoApocGraph.initialize({
   database: process.env.NEO4J_DATABASE,
 });
 
-const llm = new ChatGoogleGenerativeAI({
+// Initialize Language Models
+const googleLlm = new ChatGoogleGenerativeAI({
   model: "gemini-2.0-flash-001",
   temperature: 0,
   googleApiKey: process.env.GOOGLE_API_KEY,
 });
 
-const llmOpenAI = new ChatOpenAI({
+const openAiLlm = new ChatOpenAI({
   model: "gpt-4.1-mini",
   temperature: 0,
-  googleApiKey: process.env.OPENAI_API_KEY,
+  apiKey: process.env.OPENAI_API_KEY,
 });
 
-const creativeLlm = new ChatGoogleGenerativeAI({
+const creativeGoogleLlm = new ChatGoogleGenerativeAI({
   model: "gemini-2.0-flash-001",
   temperature: 0.35,
   googleApiKey: process.env.GOOGLE_API_KEY,
 });
 
-async function retriever(question, k = 10) {
-  const unstructuredDocs = await Promise.all([
-    retrieverUnstructured(question, k),
-  ]);
-
-  return {
-    question,
-    unstructured: unstructuredDocs.map((d) => ({
-      text: d.pageContent,
-      metadata: {
-        source: d.metadata?.source,
-        year: d.metadata?.date_of_issue,
-      },
-    })),
-  };
-}
-
+// Prompt templates
 const standAloneQuestionPrompt = ChatPromptTemplate.fromTemplate(
   standAloneQuestionTemplate
 );
+const multiQueryPrompt = ChatPromptTemplate.fromTemplate(
+  multiQueryGraphTemplate_test
+);
+const finalPrompt = ChatPromptTemplate.fromTemplate(finalGraphTemplate);
 
+// Standalone question-answer chain
 const standaloneChain = RunnableSequence.from([
   {
     question: (input) => input.question,
     chat_history: (input) => input.chat_history,
   },
   standAloneQuestionPrompt,
-  llm,
+  googleLlm,
   new StringOutputParser(),
 ]);
 
-const multiQueryPrompt = ChatPromptTemplate.fromTemplate(
-  multiQueryGraphTemplate
-);
+/**
+ * Retrieve context chunks for a single question using Neo4j vector search,
+ * filter by score, then refine by recency.
+ */
+async function retrieveFunc(question) {
+  const questionEmbedding = await embeddings.embedQuery(question);
 
-const relationshipsRunnable = new RunnableLambda({
-  func: async (input) => {
-    const question = typeof input === "string" ? input : input.question;
-    return retriever(question);
-  },
-});
+  const docsAndScores =
+    await vectorSummaryStore.similaritySearchVectorWithScore(
+      questionEmbedding,
+      10
+    );
 
-const relationshipsComposed = standaloneChain.pipe(relationshipsRunnable);
+  const filteredDocs = filterDocsByScore(docsAndScores, 0.7);
+  const docsIds = filteredDocs.map((doc) => doc.metadata.element_id);
 
-const assembleInputs = new RunnableMap({
-  steps: {
-    relationships: relationshipsComposed, // passes original input by default
-    question: standaloneChain, // new RunnablePassthrough()
-  },
-});
-
-//  Extract questions
-const extractQuestionsRunnable = new RunnableLambda({
-  func: async (raw) => {
-    const splits = splitQuestions(raw);
-    return splits;
-  },
-});
-
-const unstructuredRetrieverRunnable = new RunnableLambda({
-  func: async (singleQuestion) => {
-    // community path
-    const questionEmbedding = await embeddings.embedQuery(singleQuestion);
-    const docsAndScores =
-      await vectorSummaryStore.similaritySearchVectorWithScore(
-        questionEmbedding,
-        10
-      );
-    const filteredDocs = filterDocsByScore(docsAndScores, 0.7);
-    const docsIds = filteredDocs.map((doc) => doc.metadata.element_id);
-    const CYPHER = `
-    CALL {
+  const CYPHER = `
+CALL {
   CALL db.index.vector.queryNodes(
     'chunkEmbeddingIndex',
     toInteger($k * 4),
@@ -157,12 +119,10 @@ const unstructuredRetrieverRunnable = new RunnableLambda({
   MATCH (node:Chunk)-[:FROM_DOCUMENT]-(doc:Document)
   WHERE elementId(doc) = id
 
-  // Return the chunks from 'node' side
   RETURN { text: node.text, year: doc.date_of_issue, source: doc.path } AS chunk, score
 
   UNION ALL
 
-  // Now separately match context-sharing neighbors
   CALL db.index.vector.queryNodes(
     'chunkEmbeddingIndex',
     toInteger($k * 4),
@@ -183,42 +143,58 @@ WITH chunk, score
 ORDER BY score DESC
 LIMIT toInteger($k * 8)
 RETURN collect(chunk) AS combined_chunks
-    `;
-    const records = await graph.query(CYPHER, {
-      k: 10,
-      ids: docsIds,
-      question_embedding: questionEmbedding,
-    });
-    const finalContext = selectChunksByRecency(records, 15);
-    const updatedDocs = finalContext.map((doc) => {
-      return {
-        text: doc.text,
-        metadata: {
-          // chunk_id: doc.metadata.element_id,
-          source: doc.source,
-          year: doc.year,
-        },
-      };
-    });
-    return {
-      question: singleQuestion,
-      hits: updatedDocs.map((d) => ({
-        text: d.text,
-        metadata: d.metadata,
-      })),
-    };
-  },
+`;
+
+  const records = await graph.query(CYPHER, {
+    k: 10,
+    ids: docsIds,
+    question_embedding: questionEmbedding,
+  });
+
+  const finalContext = selectChunksByRecency(records, 15);
+  const updatedDocs = finalContext.map((doc) => ({
+    text: doc.text,
+    metadata: {
+      source: doc.source,
+      year: doc.year,
+    },
+  }));
+
+  return {
+    question,
+    hits: updatedDocs,
+  };
+}
+
+// Runnable for retrieving unstructured documents for a question
+const unstructuredRetrieverRunnable = new RunnableLambda({
+  func: retrieveFunc,
 });
 
-const multiQueryChain = assembleInputs
-  .pipe(multiQueryPrompt) // format prompt
-  .pipe(creativeLlm) // call LLM
-  .pipe(new StringOutputParser()) // to raw string
-  .pipe(extractQuestionsRunnable) // array<string>
-  .pipe(unstructuredRetrieverRunnable.map()); // array<{question, hits}>
+// Multi-query chain that:
+// - formats the prompt,
+// - calls creative Google LLM,
+// - parses output,
+// - extracts multiple questions,
+// - batch retrieves context for each question.
+const multiQueryChain = multiQueryPrompt
+  .pipe(creativeGoogleLlm)
+  .pipe(new StringOutputParser())
+  .pipe(
+    new RunnableLambda({
+      func: splitQuestions,
+    })
+  )
+  .pipe(
+    new RunnableLambda({
+      func: async (questions) => Promise.all(questions.map(retrieveFunc)),
+    })
+  );
 
+// Pipeline combining standalone retrieval with unstructured retrieval
 const p_chain = standaloneChain.pipe(unstructuredRetrieverRunnable);
 
+// Run parallel retrievals and fuse their outputs
 const parallelGather = new RunnableMap({
   steps: {
     per_question_docs: multiQueryChain,
@@ -227,26 +203,22 @@ const parallelGather = new RunnableMap({
 });
 
 const fuseRunnable = new RunnableLambda({
-  func: async (data) => {
-    // Optionally: adjust k
-    return fuseParallelSummaryOutputs(data, { k: 60 });
-  },
+  func: async (data) => fuseParallelSummaryOutputs(data, { k: 60 }),
 });
 
 const t_chain = parallelGather.pipe(fuseRunnable);
 
-const finalPromt = ChatPromptTemplate.fromTemplate(finalGraphTemplate);
-
 const parallelInputs = new RunnableMap({
   steps: {
-    context: t_chain,
+    context: t_chain, // t_chain,
     question: new RunnablePassthrough(),
   },
 });
 
+// Final chain to generate response using OpenAI GPT-4.1-mini
 const finalCommunityChain = parallelInputs
-  .pipe(finalPromt)
-  .pipe(llmOpenAI)
+  .pipe(finalPrompt)
+  .pipe(openAiLlm)
   .pipe(new StringOutputParser());
 
 export { finalCommunityChain };

@@ -223,7 +223,6 @@ export default function ChatPageDark() {
             <option value="heavy">GME 1.5 Heavy</option>
             <option value="hulk">GME 1.5 Hulk</option>
             <option value="von">GME 1.5 Von</option>
-            <option value="von_test">GME 1.5 Von_test</option>
           </select>
         </div>
 

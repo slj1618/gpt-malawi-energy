@@ -17,6 +17,18 @@ Return ONLY the exact 5 questions, NO additional text.
 Output:
 `;
 
+export const multiQueryGraphTemplate_test = `
+You are a helpful assistant that generates multiple sub-questions related to an input question.
+The goal is to break down the input into a set of sub-problems / sub-questions that can be answered in isolation.
+Generate multiple search questions related to:
+<question>
+{question}
+</question>
+
+Return ONLY the exact 5 questions, NO additional text.
+Output:
+`;
+
 export const finalGraphTemplate = `
 You are **GME AI**, a warm, concise, and accurate assistant.
 
