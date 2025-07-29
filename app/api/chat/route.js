@@ -12,9 +12,18 @@ import { finalCommunityChain } from "../../lib/graphRagModel_002";
 
 /* -------------------------------------------------- */
 
+// Model chain map defined once outside to avoid recreation on every request
+const modelChains = {
+  flash: answerChainModelFlash,
+  heavy: answerChain,
+  hulk: finalChain,
+  von: finalCommunityChain,
+};
+
 export async function POST(req) {
   try {
     const { message, conversationId: clientCid, model } = await req.json();
+
     if (!message) {
       return NextResponse.json(
         { error: "Message is required" },
@@ -22,107 +31,84 @@ export async function POST(req) {
       );
     }
 
-    // Generate a new conversation ID if one is not provided by the client
-    let conversationId = clientCid || crypto.randomUUID();
+    const conversationId = clientCid || crypto.randomUUID();
 
-    // 1️⃣  Pull full rows from Supabase for the current conversation
-    // This retrieves the chat history to build the memory
-    const { data: rows, error } = await serverSupabase
+    // Fetch chat history sorted ascending by creation date
+    const { data: rows, error: fetchError } = await serverSupabase
       .from("chat_messages")
       .select("role, content")
       .eq("conversation_id", conversationId)
       .order("created_at", { ascending: true });
 
-    if (error) {
-      console.error("Supabase fetch error:", error);
-      throw error;
-    }
-
-    // 2️⃣  Create / load the summary memory
-    // Initialize ConversationSummaryMemory with the LLM for summarization
-    const summariser = new ConversationSummaryMemory({
-      llm: llmSummary,
-      memoryKey: "chat_history", // The key under which the summary will be stored
-    });
-
-    let pendingHumanContent = ""; // Temporarily holds human message content until its AI reply is found
-
-    // Iterate through historical messages to build the summary memory
-    for (const row of rows) {
-      if (row.role === "human") {
-        // If a human message is found, store its content
-        pendingHumanContent = row.content;
-      } else if (row.role === "ai") {
-        // If an AI message is found, and there's a preceding human message,
-        // then save this complete turn (human input + AI output) to the summarizer.
-        if (pendingHumanContent !== "") {
-          // Crucial check: Only save if human input exists
-          await summariser.saveContext(
-            { input: pendingHumanContent },
-            { output: row.content }
-          );
-          pendingHumanContent = ""; // Reset for the next human-AI pair
-        }
-        // If pendingHumanContent is empty here, it means this AI message
-        // doesn't have a direct preceding human message in the current sequence
-        // (e.g., first message is AI, or multiple AI messages in a row).
-        // In such cases, we skip saving context for this AI message alone.
-      }
-    }
-
-    // If the loop ends with a pending human message (i.e., the last message
-    // in history was a human message without an AI reply yet),
-    // push it into memory so the model "remembers" the last question.
-    if (pendingHumanContent !== "") {
-      // Crucial check: Only save if human input exists
-      await summariser.saveContext(
-        { input: pendingHumanContent },
-        { output: "" }
+    if (fetchError) {
+      console.error("Supabase fetch error:", fetchError);
+      return NextResponse.json(
+        { error: "Failed to fetch conversation history" },
+        { status: 500 }
       );
     }
 
-    // Retrieve the summarized chat history from the memory
+    // Initialize summarizer memory with LLM for summarization
+    const summariser = new ConversationSummaryMemory({
+      llm: llmSummary,
+      memoryKey: "chat_history",
+    });
+
+    // Build summary memory from conversation history
+    let lastHumanMessage = "";
+    for (const { role, content } of rows) {
+      if (role === "human") {
+        lastHumanMessage = content;
+      } else if (role === "ai") {
+        if (lastHumanMessage) {
+          await summariser.saveContext(
+            { input: lastHumanMessage },
+            { output: content }
+          );
+          lastHumanMessage = "";
+        }
+      }
+    }
+
+    // If last message was human without AI reply, save it with empty output
+    if (lastHumanMessage) {
+      await summariser.saveContext({ input: lastHumanMessage }, { output: "" });
+    }
+
+    // Load summarized chat history variable for RAG input
     const { chat_history: chatHistory } = await summariser.loadMemoryVariables(
       {}
     );
 
-    /* 3️⃣  Call the RAG chain – give it both the current question and the previous messages */
+    // Select chain model, default to 'heavy'
+    const chain = modelChains[model] ?? answerChain;
+
+    console.log("Selected model:", model);
+
     const t0 = Date.now();
-    let botReply;
-    console.log("Selected model: ", model);
-
-    const modelChains = {
-      flash: answerChainModelFlash,
-      heavy: answerChain,
-      hulk: finalChain,
-      von: finalCommunityChain,
-    };
-
-    // Default to 'heavy' if model not matched
-    const chain = modelChains[model] || answerChain;
-
-    botReply = await chain.invoke({
+    const botReply = await chain.invoke({
       question: message,
       chat_history: chatHistory,
     });
-
     const t1 = Date.now();
+
     console.log(`Time taken to answer: ${(t1 - t0) / 1000} seconds`);
 
-    /* 4️⃣  Persist both turns (human input and AI reply) to Supabase */
+    // Insert user message and AI reply to Supabase in a single transaction
     const { error: insertErr } = await serverSupabase
       .from("chat_messages")
       .insert([
         { conversation_id: conversationId, role: "human", content: message },
         { conversation_id: conversationId, role: "ai", content: botReply },
       ]);
+
     if (insertErr) {
       console.error("Supabase insert error:", insertErr);
+    } else {
+      const t2 = Date.now();
+      console.log(`Time taken to insert: ${(t2 - t1) / 1000} seconds`);
     }
-    const t2 = Date.now();
-    console.log(`Time taken to insert: ${(t2 - t1) / 1000} seconds`);
 
-    // Return the AI's reply and the conversation ID
     return NextResponse.json({ reply: botReply, conversationId });
   } catch (err) {
     console.error("Chat API caught error:", err);
