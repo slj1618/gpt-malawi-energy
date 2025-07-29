@@ -1,6 +1,6 @@
 import { PromptTemplate } from "@langchain/core/prompts";
 import { ChatOpenAI } from "@langchain/openai";
-import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
+// import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 import { StringOutputParser } from "@langchain/core/output_parsers";
 import { config } from "dotenv";
 // import { retriever } from "./retriever.js";
@@ -22,28 +22,28 @@ const llm = new ChatOpenAI({
   openAIApiKey: openAIApiKey,
 });
 
-// const llmSummary = new ChatOpenAI({
-//   model: "gpt-3.5-turbo-0125",
-//   temperature: 0,
-//   openAIApiKey: openAIApiKey,
-// });
-const llmSummary = new ChatGoogleGenerativeAI({
-  model: "gemini-2.0-flash-001",
+const llmSummary = new ChatOpenAI({
+  model: "gpt-3.5-turbo-0125",
   temperature: 0,
-  googleApiKey: process.env.GOOGLE_API_KEY,
+  openAIApiKey: openAIApiKey,
 });
-
-// const creativeLlm = new ChatOpenAI({
-//   model: "gpt-3.5-turbo-0125",
-//   temperature: 0.15,
-//   openAIApiKey: openAIApiKey,
+// const llmSummary = new ChatGoogleGenerativeAI({
+//   model: "gemini-2.0-flash-001",
+//   temperature: 0,
+//   googleApiKey: process.env.GOOGLE_API_KEY,
 // });
 
-const creativeLlm = new ChatGoogleGenerativeAI({
-  model: "gemini-2.0-flash-001",
-  temperature: 0.35,
-  googleApiKey: process.env.GOOGLE_API_KEY,
+const creativeLlm = new ChatOpenAI({
+  model: "gpt-3.5-turbo-0125",
+  temperature: 0.15,
+  openAIApiKey: openAIApiKey,
 });
+
+// const creativeLlm = new ChatGoogleGenerativeAI({
+//   model: "gemini-2.0-flash-001",
+//   temperature: 0.35,
+//   googleApiKey: process.env.GOOGLE_API_KEY,
+// });
 
 const standAloneQuestionTemplate =
   "Given a question and the chat history, convert it to a standalone question.\nQuestion: {question}\nChat History: {chat_history}";
